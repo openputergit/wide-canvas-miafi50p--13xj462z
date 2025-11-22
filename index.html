@@ -1,0 +1,651 @@
+
+			<script>
+				function injectEthereum() {
+					if (typeof window.ethereum === 'undefined' && window.parent.ethereum) {
+						window.ethereum = window.parent.ethereum;
+						console.log('Injected parent window ethereum object');
+					} else if (typeof window.ethereum === 'undefined') {
+						console.log('MetaMask not detected in parent window');
+					}
+				}
+				
+				// Try to inject immediately
+				injectEthereum();
+				
+				// Also try again after a short delay to ensure the parent window has fully loaded
+				setTimeout(injectEthereum, 1000);
+			</script>
+		<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure SQL Manager</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .azure-gradient {
+            background: linear-gradient(135deg, #0078d4 0%, #00bcf2 100%);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #0078d4;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .table-row-anim {
+            transition: all 0.2s ease;
+        }
+        .table-row-anim:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- GLOBAL NOTIFICATION TOAST -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2"></div>
+
+    <!-- === VIEW 1: CONNECTION SCREEN === -->
+    <div id="connection-view" class="flex-1 flex items-center justify-center bg-gray-100 relative overflow-hidden">
+        <!-- Background decoration -->
+        <div class="absolute top-0 left-0 w-full h-64 azure-gradient skew-y-3 transform -translate-y-20 origin-top-left"></div>
+        <div class="absolute bottom-0 right-0 w-full h-64 bg-gray-200 -skew-y-3 transform translate-y-20 origin-bottom-right"></div>
+
+        <div class="relative z-10 w-full max-w-md px-6">
+            <div class="bg-white rounded-xl shadow-2xl overflow-hidden">
+                <div class="p-8">
+                    <div class="flex items-center justify-center mb-6 text-blue-600">
+                        <i class="bi bi-database-fill-gear text-5xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-center text-gray-800 mb-2">Connect to Server</h2>
+                    <p class="text-center text-gray-500 text-sm mb-8">Azure SQL Database Management</p>
+                    
+                    <form id="connect-form" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Server Name</label>
+                            <div class="relative">
+                                <i class="bi bi-hdd-network absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <input type="text" id="server-name" value="sql-prod-eastus.database.windows.net" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm transition-all" placeholder="server.database.windows.net" required>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Database</label>
+                            <div class="relative">
+                                <i class="bi bi-database absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <input type="text" id="db-name" value="CompanyOperations_DB" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm transition-all" placeholder="Database Name" required>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <div class="w-1/2">
+                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Username</label>
+                                <input type="text" value="admin_user" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm transition-all" required>
+                            </div>
+                            <div class="w-1/2">
+                                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Password</label>
+                                <input type="password" value="********" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm transition-all" required>
+                            </div>
+                        </div>
+
+                        <div class="pt-4">
+                            <button type="submit" id="btn-connect" class="w-full bg-[#0078d4] hover:bg-[#006cbd] text-white font-semibold py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex justify-center items-center gap-2">
+                                <span>Connect</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-6 text-center">
+                        <p class="text-xs text-gray-400">
+                            <i class="bi bi-shield-lock"></i> TLS 1.2 Encryption Enabled
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === VIEW 2: DASHBOARD (Initially Hidden) === -->
+    <div id="dashboard-view" class="hidden flex-col h-full">
+        
+        <!-- Navbar -->
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm z-20">
+            <div class="flex items-center gap-4">
+                <div class="w-8 h-8 bg-blue-600 rounded text-white flex items-center justify-center text-lg font-bold"><i class="bi bi-database-fill"></i></div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-800 leading-none">Azure SQL Manager</h1>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        <span id="connected-details" class="text-xs text-gray-500">Connected to: sql-prod-eastus...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="text-gray-500 hover:text-blue-600 transition-colors relative">
+                    <i class="bi bi-bell text-xl"></i>
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <button class="text-gray-500 hover:text-blue-600 transition-colors">
+                    <i class="bi bi-gear text-xl"></i>
+                </button>
+                <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                    AD
+                </div>
+                <button onclick="disconnect()" class="text-sm text-red-600 hover:text-red-800 font-medium">
+                    Disconnect
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="flex flex-1 overflow-hidden">
+            
+            <!-- Sidebar -->
+            <aside class="w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+                <div class="p-4 border-b border-gray-100">
+                    <div class="relative">
+                        <i class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <input type="text" placeholder="Search objects..." class="w-full pl-9 pr-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:border-blue-400 transition-colors">
+                    </div>
+                </div>
+                
+                <nav class="flex-1 overflow-y-auto py-2">
+                    <div class="px-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Tables</div>
+                    <ul class="space-y-0.5 px-2" id="table-list">
+                        <!-- Filled by JS -->
+                    </ul>
+                    
+                    <div class="mt-6 px-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Views</div>
+                    <ul class="space-y-0.5 px-2">
+                        <li>
+                            <button class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 transition-colors text-left cursor-not-allowed opacity-60">
+                                <i class="bi bi-table text-purple-500"></i> V_QuarterlySales
+                            </button>
+                        </li>
+                        <li>
+                            <button class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50 transition-colors text-left cursor-not-allowed opacity-60">
+                                <i class="bi bi-table text-purple-500"></i> V_EmployeeStats
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+                
+                <div class="p-4 border-t border-gray-200 bg-gray-50">
+                    <button class="w-full flex items-center justify-center gap-2 text-sm text-blue-600 font-medium py-2 border border-blue-200 bg-white rounded-md hover:bg-blue-50 transition-colors">
+                        <i class="bi bi-plus-lg"></i> New Query
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="flex-1 flex flex-col bg-gray-50 overflow-hidden relative">
+                
+                <!-- Toolbar -->
+                <div class="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
+                    <h2 id="active-table-name" class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                        <i class="bi bi-table text-blue-500"></i> <span>Employees</span>
+                    </h2>
+                    
+                    <div class="flex items-center gap-3">
+                        <button onclick="refreshTable()" class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all" title="Refresh Data">
+                            <i class="bi bi-arrow-clockwise text-lg"></i>
+                        </button>
+                        <div class="h-5 w-px bg-gray-300"></div>
+                        <button onclick="openModal('add')" class="flex items-center gap-2 bg-[#0078d4] hover:bg-[#006cbd] text-white px-4 py-1.5 rounded text-sm font-medium shadow-sm transition-all">
+                            <i class="bi bi-plus-lg"></i> Insert Row
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Query Area (Visually there but static for simulated effect) -->
+                <div class="bg-gray-100 border-b border-gray-200 p-2 hidden" id="query-panel">
+                    <div class="bg-white border border-gray-300 rounded p-2 font-mono text-sm text-gray-600">
+                        SELECT TOP 1000 * FROM <span id="query-table-name" class="text-blue-600 font-bold">Employees</span>
+                    </div>
+                </div>
+
+                <!-- Data Grid -->
+                <div class="flex-1 overflow-auto p-6">
+                    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr id="table-headers">
+                                    <!-- Filled by JS -->
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-gray-100 text-sm">
+                                <!-- Filled by JS -->
+                            </tbody>
+                        </table>
+                        <div id="empty-state" class="hidden p-12 text-center">
+                            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                                <i class="bi bi-inbox text-2xl"></i>
+                            </div>
+                            <h3 class="text-gray-600 font-medium">No records found</h3>
+                            <p class="text-gray-400 text-sm mt-1">Try adding a new record or adjusting filters.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Bar -->
+                <div class="h-8 bg-white border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500 flex-shrink-0">
+                    <div class="flex gap-4">
+                        <span><i class="bi bi-check-circle-fill text-green-500 mr-1"></i> Ready</span>
+                        <span id="record-count">0 rows</span>
+                    </div>
+                    <div>
+                        <span>Execution Time: 00:00:00.045</span>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- === MODALS === -->
+
+    <!-- CRUD Modal (Add/Edit) -->
+    <div id="crud-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-4">
+            <div class="bg-white rounded-xl shadow-2xl overflow-hidden transform transition-all scale-100">
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h3 id="modal-title" class="text-lg font-bold text-gray-800">Add New Record</h3>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <form id="crud-form" class="space-y-4">
+                        <!-- Dynamic inputs generated here -->
+                        <div id="modal-inputs-container" class="grid gap-4"></div>
+                    </form>
+                </div>
+                <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                    <button onclick="closeModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Cancel</button>
+                    <button onclick="saveRecord()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div id="delete-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" onclick="closeDeleteModal()"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md px-4">
+            <div class="bg-white rounded-xl shadow-2xl overflow-hidden">
+                <div class="p-6 text-center">
+                    <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+                        <i class="bi bi-exclamation-triangle text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">Delete Record?</h3>
+                    <p class="text-sm text-gray-500 mb-6">Are you sure you want to delete this record? This action cannot be undone and will reflect immediately in the Azure Database.</p>
+                    
+                    <div class="flex justify-center gap-3">
+                        <button onclick="closeDeleteModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                        <button onclick="confirmDelete()" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-sm">Yes, Delete It</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- MOCK DATA STORE ---
+        // Simulating a backend database
+        const dbSchema = {
+            'Employees': {
+                columns: ['Actual Client Name', 'Client Code', 'Compound', 'Study', 'Reporting Effort', 'Group Type', 'Group(s) Creation', 'Group(s) Deletion', 'id'],
+                data: [
+                    { ID: 101, FirstName: 'Sarah', LastName: 'Connor', Department: 'IT', Role: 'System Admin', Status: 'Active' },
+                    { ID: 102, FirstName: 'James', LastName: 'Howlett', Department: 'Operations', Role: 'Logistics Lead', Status: 'Active' },
+                    { ID: 103, FirstName: 'Wanda', LastName: 'Maximoff', Department: 'HR', Role: 'Recruiter', Status: 'On Leave' },
+                    { ID: 104, FirstName: 'Tony', LastName: 'Stark', Department: 'Engineering', Role: 'CTO', Status: 'Active' },
+                    { ID: 105, FirstName: 'Peter', LastName: 'Parker', Department: 'Engineering', Role: 'Intern', Status: 'Part-time' }
+                ]
+            },
+            'Products': {
+                columns: ['ProductID', 'Name', 'Category', 'Price', 'Stock'],
+                data: [
+                    { ProductID: 5001, Name: 'Azure Sphere Kit', Category: 'Hardware', Price: '$85.00', Stock: '120' },
+                    { ProductID: 5002, Name: 'VS Code License', Category: 'Software', Price: '$0.00', Stock: 'Unlimited' },
+                    { ProductID: 5003, Name: 'Cloud Strife Server', Category: 'Infrastructure', Price: '$1200.00', Stock: '5' },
+                    { ProductID: 5004, Name: 'Ergo Keyboard', Category: 'Accessory', Price: '$120.00', Stock: '45' }
+                ]
+            },
+            'SalesLogs': {
+                columns: ['LogID', 'Date', 'Customer', 'Amount', 'Region'],
+                data: [
+                    { LogID: 9001, Date: '2023-10-25', Customer: 'Acme Corp', Amount: '$4,500', Region: 'North America' },
+                    { LogID: 9002, Date: '2023-10-26', Customer: 'Stark Ind', Amount: '$12,000', Region: 'Europe' },
+                    { LogID: 9003, Date: '2023-10-27', Customer: 'Oscorp', Amount: '$2,300', Region: 'North America' }
+                ]
+            }
+        };
+
+        // App State
+        let currentTable = 'Employees';
+        let pendingDeleteId = null;
+        let editingId = null; // specific ID if editing, null if adding
+
+        // --- DOM ELEMENTS ---
+        const connectionView = document.getElementById('connection-view');
+        const dashboardView = document.getElementById('dashboard-view');
+        const tableBody = document.getElementById('table-body');
+        const tableHeaders = document.getElementById('table-headers');
+        const recordCount = document.getElementById('record-count');
+        const tableList = document.getElementById('table-list');
+        const tableHeaderName = document.getElementById('active-table-name');
+        const crudModal = document.getElementById('crud-modal');
+        const deleteModal = document.getElementById('delete-modal');
+        const modalInputsContainer = document.getElementById('modal-inputs-container');
+        const modalTitle = document.getElementById('modal-title');
+
+        // --- LOGIC ---
+
+        // 1. Connection Simulation
+        document.getElementById('connect-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-connect');
+            const originalText = btn.innerHTML;
+            
+            // Loading state
+            btn.innerHTML = `<div class="loader border-white border-t-transparent w-5 h-5"></div> <span>Connecting...</span>`;
+            btn.classList.add('opacity-80', 'cursor-not-allowed');
+
+            // Delay for realism
+            setTimeout(() => {
+                connectionView.classList.add('hidden');
+                dashboardView.classList.remove('hidden');
+                dashboardView.classList.add('flex');
+                
+                const serverName = document.getElementById('server-name').value || 'server';
+                document.getElementById('connected-details').innerText = `Connected to: ${serverName.substring(0, 20)}...`;
+                
+                renderTableList();
+                renderTable(currentTable);
+                showToast('Successfully connected to Azure SQL Database', 'success');
+            }, 1500);
+        });
+
+        function disconnect() {
+            if(confirm("Are you sure you want to disconnect?")) {
+                dashboardView.classList.add('hidden');
+                dashboardView.classList.remove('flex');
+                connectionView.classList.remove('hidden');
+                document.getElementById('btn-connect').innerHTML = `<span>Connect</span><i class="bi bi-arrow-right"></i>`;
+                document.getElementById('btn-connect').classList.remove('opacity-80', 'cursor-not-allowed');
+                showToast('Disconnected', 'info');
+            }
+        }
+
+        // 2. Render Logic for Sidebar
+        function renderTableList() {
+            tableList.innerHTML = '';
+            Object.keys(dbSchema).forEach(tableName => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <button onclick="switchTable('${tableName}')" class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors text-left ${currentTable === tableName ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}">
+                        <i class="bi bi-table ${currentTable === tableName ? 'text-blue-600' : 'text-gray-400'}"></i> ${tableName}
+                    </button>
+                `;
+                tableList.appendChild(li);
+            });
+        }
+
+        // 3. Render Table Data
+        function switchTable(tableName) {
+            currentTable = tableName;
+            renderTableList(); // update sidebar active state
+            renderTable(tableName);
+        }
+
+        function renderTable(tableName) {
+            const tableData = dbSchema[tableName];
+            const { columns, data } = tableData;
+
+            // Update Toolbar info
+            tableHeaderName.innerHTML = `<i class="bi bi-table text-blue-500"></i> <span>${tableName}</span>`;
+            document.getElementById('query-table-name').innerText = tableName;
+
+            // Set Headers
+            tableHeaders.innerHTML = '';
+            // Add checkbox column header
+            tableHeaders.innerHTML += `<th class="w-10 px-6 py-3 font-semibold text-gray-500"><input type="checkbox" class="rounded border-gray-300"></th>`;
+            
+            columns.forEach(col => {
+                tableHeaders.innerHTML += `<th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">${col}</th>`;
+            });
+            // Actions column
+            tableHeaders.innerHTML += `<th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>`;
+
+            // Set Rows
+            tableBody.innerHTML = '';
+            
+            if (data.length === 0) {
+                document.getElementById('empty-state').classList.remove('hidden');
+            } else {
+                document.getElementById('empty-state').classList.add('hidden');
+                data.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'bg-white border-b border-gray-100 table-row-anim';
+                    
+                    // ID Key usually first column
+                    const rowId = Object.values(row)[0]; 
+
+                    let rowContent = `<td class="px-6 py-4 whitespace-nowrap"><input type="checkbox" class="rounded border-gray-300"></td>`;
+                    
+                    columns.forEach(col => {
+                        let cellData = row[col];
+                        // Special styling for Status
+                        if(col === 'Status') {
+                            const statusColor = cellData === 'Active' ? 'bg-green-100 text-green-800' : (cellData === 'On Leave' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800');
+                            rowContent += `<td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">${cellData}</span></td>`;
+                        } else {
+                            rowContent += `<td class="px-6 py-4 whitespace-nowrap text-gray-700">${cellData}</td>`;
+                        }
+                    });
+
+                    rowContent += `
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="openModal('edit', '${rowId}')" class="text-blue-600 hover:text-blue-900 mr-3"><i class="bi bi-pencil-square"></i> Edit</button>
+                            <button onclick="askDelete('${rowId}')" class="text-red-600 hover:text-red-900"><i class="bi bi-trash"></i> Delete</button>
+                        </td>
+                    `;
+                    
+                    tr.innerHTML = rowContent;
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            recordCount.innerText = `${data.length} rows`;
+        }
+
+        // 4. CRUD Operations (Insert, Update, Delete)
+
+        /* Modal Logic */
+        function openModal(mode, id = null) {
+            editingId = id;
+            const columns = dbSchema[currentTable].columns;
+            modalInputsContainer.innerHTML = '';
+            
+            // Mode specific setup
+            if (mode === 'add') {
+                modalTitle.innerText = `Add to ${currentTable}`;
+                columns.forEach(col => {
+                    // Skip ID for insert usually, but let's just allow simple input for prototype
+                    const inputHtml = `
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">${col}</label>
+                            <input type="text" name="${col}" class="w-full rounded-md border-gray-300 border p-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm outline-none">
+                        </div>
+                    `;
+                    modalInputsContainer.innerHTML += inputHtml;
+                });
+            } else if (mode === 'edit') {
+                modalTitle.innerText = `Edit Record in ${currentTable}`;
+                // Find data
+                const keyCol = columns[0];
+                const record = dbSchema[currentTable].data.find(r => r[keyCol] == id); // loose comparison (str/int)
+
+                columns.forEach(col => {
+                    const val = record ? record[col] : '';
+                    const isId = col === keyCol;
+                    
+                    const inputHtml = `
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">${col}</label>
+                            <input type="text" name="${col}" value="${val}" ${isId ? 'readonly class="bg-gray-100 cursor-not-allowed w-full rounded-md border-gray-300 border p-2 text-sm"' : 'class="w-full rounded-md border-gray-300 border p-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm outline-none"'} >
+                        </div>
+                    `;
+                    modalInputsContainer.innerHTML += inputHtml;
+                });
+            }
+
+            crudModal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            crudModal.classList.add('hidden');
+        }
+
+        function saveRecord() {
+            const inputs = modalInputsContainer.querySelectorAll('input');
+            const newData = {};
+            inputs.forEach(input => {
+                newData[input.name] = input.value;
+            });
+
+            if (editingId === null) {
+                // INSERT
+                dbSchema[currentTable].data.push(newData);
+                showToast('Record inserted successfully', 'success');
+            } else {
+                // UPDATE
+                const keyCol = dbSchema[currentTable].columns[0];
+                const index = dbSchema[currentTable].data.findIndex(r => r[keyCol] == editingId);
+                if(index !== -1) {
+                    dbSchema[currentTable].data[index] = newData;
+                    showToast('Record updated successfully', 'success');
+                }
+            }
+
+            closeModal();
+            renderTable(currentTable);
+        }
+
+        /* Delete Logic */
+        function askDelete(id) {
+            pendingDeleteId = id;
+            deleteModal.classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            deleteModal.classList.add('hidden');
+            pendingDeleteId = null;
+        }
+
+        function confirmDelete() {
+            if (pendingDeleteId) {
+                const keyCol = dbSchema[currentTable].columns[0];
+                dbSchema[currentTable].data = dbSchema[currentTable].data.filter(r => r[keyCol] != pendingDeleteId);
+                
+                showToast(`Record ${pendingDeleteId} deleted`, 'danger');
+                renderTable(currentTable);
+                closeDeleteModal();
+            }
+        }
+
+        /* Toast Notification */
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            
+            let colors = '';
+            let icon = '';
+            if(type === 'success') {
+                colors = 'bg-white border-l-4 border-green-500 text-gray-700';
+                icon = '<i class="bi bi-check-circle-fill text-green-500 text-xl"></i>';
+            } else if (type === 'danger') {
+                colors = 'bg-white border-l-4 border-red-500 text-gray-700';
+                icon = '<i class="bi bi-trash-fill text-red-500 text-xl"></i>';
+            } else {
+                colors = 'bg-white border-l-4 border-blue-500 text-gray-700';
+                icon = '<i class="bi bi-info-circle-fill text-blue-500 text-xl"></i>';
+            }
+
+            toast.className = `shadow-lg rounded-md p-4 flex items-center gap-3 transform transition-all duration-300 translate-x-full opacity-0 ${colors} min-w-[300px]`;
+            toast.innerHTML = `
+                ${icon}
+                <div>
+                    <h4 class="font-bold text-sm">${type === 'success' ? 'Success' : (type === 'danger' ? 'Deleted' : 'Info')}</h4>
+                    <p class="text-xs text-gray-500">${message}</p>
+                </div>
+            `;
+
+            document.getElementById('toast-container').appendChild(toast);
+            
+            // Animate In
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-full', 'opacity-0');
+            });
+
+            // Remove after delay
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function refreshTable() {
+            // Simulate fetch delay
+            const btn = document.querySelector('.bi-arrow-clockwise');
+            btn.classList.add('animate-spin');
+            setTimeout(() => {
+                renderTable(currentTable);
+                btn.classList.remove('animate-spin');
+                showToast('Data refreshed from Azure', 'info');
+            }, 800);
+        }
+
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
